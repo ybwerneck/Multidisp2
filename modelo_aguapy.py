@@ -52,99 +52,87 @@ def init(L,dl):
     r= np.zeros((nl,nl))
     return r
 
-def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float) -> np.ndarray:
-   #dx=dy=dl, X=Y=L
-  nt,nl=int(t/dt),int(L/dl)
+import numpy as np
+import matplotlib.pyplot as plt
 
-  rw = (vw*dt)/(dl*phi)
-  W,U= Poisson.poisson(dl,L)
-  W,U=W/np.linalg.norm(W),U/np.linalg.norm(U)
+def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list) -> list:
+    nt, nl = int(t/dt), int(L/dl)
 
-  Sw=np.zeros((nt+1,nl,nl))
-  Sw[0]=init(L,dl)
+    rw = (vw*dt)/(dl*phi)
+    W, U = Poisson.poisson(dl, L)  # Assuming you have Poisson's solver
+    W, U = W/np.linalg.norm(W), U/np.linalg.norm(U)
 
+    Sw = np.zeros((nt+1, nl, nl))
+    Sw[0] = init(L, dl)
 
-  ##SOURCE E SINK
-  Sw[0,nl - 2 : nl,0]=0.99
-  #Sw[k,:,0]=0.99
-  for k in range(1,nt):
+    Sw_list = []
 
+    Sw[0, nl-2:nl, 0] = 0.99
+    for k in range(1, nt+1):
+        print("done ",k/nt * 100)
 
-    ##SOURCE E SINK
+        if k*dt in times:
+            Sw_list.append(np.copy(Sw[k-1]))
 
-    #Sw[k,:,0]=0.99
-    print("Done ",k/nt,"%")
+        for i in range(1, nl-1):
+            for j in range(1, nl-1):
+                C = 10
+                v = C*U[i, j]
+                w = C*W[i, j]
 
+                if v <= 0:
+                    Fy = (1/dl)*(f(Sw[k-1, i, j])-f(Sw[k-1, i+1, j]))
+                else:
+                    Fy = (1/dl)*(f(Sw[k-1, i, j])-f(Sw[k-1, i-1, j]))
+                if w <= 0:
+                    Fx = (1/dl)*(f(Sw[k-1, i, j])-f(Sw[k-1, i, j+1]))
+                else:
+                    Fx = (1/dl)*(f(Sw[k-1, i, j])-f(Sw[k-1, i, j-1]))
 
-    for i in range (1,nl-1):
-      for j in range (1,nl-1):
-        C=10
-        v=C*U[i,j]
-        w=C*W[i,j]
-        #v=-0.1
-        #w=0.5
-        #print(v,w)
+                Sw[k, i, j] = Sw[k-1, i, j] - dt*(np.abs(v)*Fy + np.abs(w)*Fx)
+                if Sw[k, i, j] > 1:
+                    return Sw_list
 
-        if(v<=0):
-            Fy=(1/dl)*(f(Sw[k-1,i,j])-f(Sw[k-1,i+1,j]))
-        else:
-            Fy=(1/dl)*(f(Sw[k-1,i,j])-f(Sw[k-1,i-1,j]))
-        if(w<=0):
-              Fx=(1/dl)*(f(Sw[k-1,i,j])-f(Sw[k-1,i,j+1]))
-        else:
-              Fx=(1/dl)*(f(Sw[k-1,i,j])-f(Sw[k-1,i,j-1]))
+        Sw[k, nl-2:nl, 0] = 0.99
 
-
-
-
-
-
-        Sw[k,i,j]= Sw[k-1,i,j]- dt*(np.abs(v)*Fy + np.abs(w)*Fx)
-        if( Sw[k,i,j]>1):
-            return Sw
-
-    Sw[k,nl- 2 : nl,0]=0.99
+    return Sw_list
 
 
-    if(k%100000==0):
-        plt.imshow(Sw[k], cmap='viridis', origin='lower', vmin=0, vmax=1)
-        plt.colorbar(label='Sw')
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.title('Matrix Sw')
-        plt.show()
-  # border
+L = 1
+dl = 0.01
+t = 10
+dt = 0.01
+Sw0 = 0
+times_of_interest = [1,2,3,4,5,6,7,8,9]  # Adjust this list with the specific times you want
 
+solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest)
 
-  return Sw
+directory = 'agua'  # Replace with your subfolder path
+for idx, time in enumerate(times_of_interest):
+    ref_csv_filename = f'concentration_{idx+2}.csv'
+    ref_csv_path = os.path.join(directory, ref_csv_filename)
+    ref_matrix = np.loadtxt(ref_csv_path, delimiter=',')
 
+    calculated_matrix = solutions[idx]
 
+    plt.figure(figsize=(10, 4))
 
-s=Solve2d(0.5,0.01,3,0.001,0)
-print(s)
+    plt.subplot(1, 2, 1)
+    plt.imshow(calculated_matrix, cmap='viridis', origin='lower', vmin=0, vmax=1)
+    plt.colorbar(label='Sw')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Calculated Sw at time ' + str(time))
 
+    plt.subplot(1, 2, 2)
+    plt.imshow(np.rot90(ref_matrix), cmap='viridis', origin='lower', vmin=0, vmax=1)
+    plt.colorbar(label='Sw')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Reference Sw at time ' + str(time))
 
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(directory+"/ajuste_at_"+str(time)+".png")
 
-frames=[]
-
-for k in range(len(s)):
-    if(k%25==0):
-        plt.imshow(s[k], cmap='viridis', origin='lower', vmin=0, vmax=1)
-        plt.colorbar(label='Sw')
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.title('Sw t='+str(k*0.001))
-
-        # Save the current figure as an image
-        plt.savefig(f'framea_{k}.png')
-
-        # Clear the figure
-        plt.clf()
-
-        # Open the saved image and append it to the frames list
-        img = Image.open(f'framea_{k}.png')
-        frames.append(np.array(img))
-
-        # Remove the saved image file
-        img.close()
 
