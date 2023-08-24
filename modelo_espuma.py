@@ -18,9 +18,10 @@ import Poisson
 #Variaveis fixas glabais 
 vw = 0.024 #velocidade de Darcy para injeção em meio poroso
 phi = 0.32142857142 #porosidade
-mi_w = 1 #viscosidade da água 20 graus 
-mi_g = 0.018 #viscosidade do ar 20 graus (ar)
+mi_w = 1e-3 #viscosidade da água 20 graus 
+mi_g = 0.018e-3 #viscosidade do ar 20 graus (ar)
 MRF = 1.0
+
 
 def PermEff(S,P):
         lamb = P[0] #mobilidade total*
@@ -55,15 +56,15 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
     nt, nl = int(t/dt), int(L/dl)
     PRE=1
     rw = (vw*dt)/(dl*phi)
-    W, U = Poisson.poisson(dl, L,    1)  
+    W, U = Poisson.poisson(dl, L, q=1.1994  ,K=krw/mi_w)  
 
-
+    print(np.max(np.abs(U)))
     Sw = np.zeros((nt+1, nl, nl))
     Sw[0] = init(L, dl)
-    D=0.01
+    D=0.09
     Sw_list = []
     dx=dy=dl
-    Sw[0, nl-2:nl, 0] = 0.99
+    Sw[0, nl-2:nl, 0] = Fw
     for k in range(1, nt+1):
         print("done ",round(k/nt * 100, 1))
 
@@ -72,7 +73,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
 
         for i in range(1, nl-1):
             for j in range(1, nl-1):
-                C = 15*1/(dl)#VAZAO/AREA * Q
+                C =(1/dl)
                 v = C*U[i, j]
                 w = C*W[i, j]
 
@@ -93,37 +94,37 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
                 if Sw[k, i, j] > 1:
                     return Sw_list
 
-        Sw[k, nl-2:nl, 0] = 0.99
+        Sw[k, nl-2:nl, 0] = Fw
 
     return Sw_list
 
 
-Area=0.1
+Area=0.
 
 L = 1
 dl = 0.05 
 t = 7
 dt = 0.01
 Sw0 = 0
-times_of_interest = [1,3,5,7]  # 
+times_of_interest = [1,3,5,7]  #  
 
 #parametros a serem ajustados
 lamb = 3 #mobilidade total*
-krg = 0.8 #permeabilidade efetiva (gás)
-krw = 0.8#permeabilidade efetiva (água)
+krg = 0.9 #permeabilidade efetiva (gás)
+krw = 0.74#permeabilidade efetiva (água) ##suspeito
 Swc = 0.99 #Saturação da água*
 Sgr = 0.000 #Saturação do gás*
 #-------------------------------
 P = [lamb, krg, krw, Swc, Sgr]
-solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=1)
+solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=(1/3)*1)
 
-directory = 'agua'  # Replace with your subfolder path
+directory = 'espuma'  # Replace with your subfolder path
 for idx, time in enumerate(times_of_interest):
     ref_csv_filename = f'concentration_{idx+2}.csv'
     ref_csv_path = os.path.join(directory, ref_csv_filename)
     ref_matrix = np.loadtxt(ref_csv_path, delimiter=',')
 
-    calculated_matrix = solutions[idx]
+    calculated_matrix = solutions[idx]/np.max(solutions[idx])
 
     plt.figure(figsize=(10, 4))
 
@@ -135,7 +136,7 @@ for idx, time in enumerate(times_of_interest):
     plt.title('Calculated Sw at time ' + str(time))
 
     plt.subplot(1, 2, 2)
-    plt.imshow(1-np.rot90(ref_matrix), cmap='viridis', origin='lower', vmin=0, vmax=1)
+    plt.imshow(np.rot90(ref_matrix), cmap='viridis', origin='lower', vmin=0, vmax=1)
     plt.colorbar(label='Sw')
     plt.xlabel('X')
     plt.ylabel('Y')

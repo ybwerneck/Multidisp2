@@ -63,7 +63,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
     D=0.01
     Sw_list = []
     dx=dy=dl
-    Sw[0, nl-2:nl, 0] = 0.99
+    Sw[0, nl-2:nl, 0] = Fw
     for k in range(1, nt+1):
         print("done ",round(k/nt * 100, 1))
 
@@ -98,7 +98,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
     return Sw_list
 
 
-Area=0.1
+Area=0.
 
 L = 1
 dl = 0.05 
@@ -115,7 +115,7 @@ Swc = 0.99 #Saturação da água*
 Sgr = 0.000 #Saturação do gás*
 #-------------------------------
 P = [lamb, krg, krw, Swc, Sgr]
-solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=1)
+solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P)
 
 directory = 'agua'  # Replace with your subfolder path
 for idx, time in enumerate(times_of_interest):

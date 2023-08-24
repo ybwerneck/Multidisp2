@@ -14,13 +14,13 @@ import cv2
 import Poisson
 
 
-def poisson(dl, L,PRE):
+def poisson(dl, L,q=100,K=1):
     # Define the problem parameters
     Lx = L  # Length of the domain in x-direction
     Ly = L  # Length of the domain in y-direction
     dx = dy = dl
     Nx = Ny = int(L / dl)
-
+    PRE=q
     # Define the boundary conditions
     u_top = 0.0
     u_bottom = 0.0
@@ -44,11 +44,11 @@ def poisson(dl, L,PRE):
 
 
     # Source boundary condition
-    u[Nx - 2 : , 0:2] = -PRE
-    u[Nx - 2 : , 0:2] = -PRE
+    u[Nx - 2 : , 0:2] = -q
+    u[Nx - 2 : , 0:2] = -q
 
-    u[0: 2, -2:] = PRE
-    u[0 : 2, -2:] = PRE
+    u[0: 2, -2:] = q
+    u[0 : 2, -2:] = q
 
     # Solve the Poisson equation
     max_iter = 1000
@@ -70,11 +70,11 @@ def poisson(dl, L,PRE):
 
     # Calculate the gradients
     grad_y, grad_x= np.gradient(u)
-    
-    grad_y, grad_x=grad_y/np.linalg.norm(grad_y),    grad_x/np.linalg.norm(grad_x)
+    grad_y, grad_x=K*grad_y/np.linalg.norm(grad_y),   K* grad_x/np.linalg.norm(grad_x)
+        
     
     # Plot the solution and gradients
-    PRE=PRE/500
+    PRE=1
     fig, ax = plt.subplots(2, 2, figsize=(10, 10))
     im1 = ax[0, 0].imshow(u, cmap='coolwarm', origin='lower', extent=[0, L, 0, L], vmin=-PRE, vmax=PRE)
     ax[0, 0].set_title('Scalar Field')
@@ -106,4 +106,4 @@ def poisson(dl, L,PRE):
     plt.show()
     return grad_x, grad_y
 
-poisson(0.1,1,1)
+poisson(0.1,10)
