@@ -35,8 +35,12 @@ def PermEff(S,P):
 
 
 def f(Sw,P):
+   return Sw
    krw1,krg1=PermEff(Sw, P)
    MRF = P[3]
+   if(Sw!=0):   
+       print(Sw,krw1,krg1)
+
    lw = krw1/mi_w
    lg = krg1/ (mi_g * MRF)
    lt=lw+lg
@@ -58,22 +62,22 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
 
     Sw = np.zeros((nt+1, nl, nl))
     Sw[0] = init(L, dl)
-    D=0.1
+    D=0.000
     Sw_list = []
     dx=dy=dl
-    Sw[0, nl-2:nl, 0:2] = Sw0
+    print(nl)
+    Sw[0,   nl-3:nl,0:3] = Sw0
     for k in range(1, nt+1):
         print("done ",round(k/nt * 100, 1))
 
         if k*dt in times:
             Sw_list.append(np.copy(Sw[k-1]))
 
-        for i in range(1, nl-1):
-            for j in range(1, nl-1):
-                C = 1#VAZAO/AREA * Q
+        for j in range(1, nl-1):
+            for i in range(1, nl-1):
+                C = 1#VAZAO/AREA * Q 
                 v = C*U[i, j]
                 w = C*W[i, j]
-
                 if v <= 0:
                     Fy = (1)*(f(Sw[k-1, i, j], P)-f(Sw[k-1, i+1, j], P))
                 else:
@@ -87,11 +91,12 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
                     (Sw[k-1, i+1, j] - 2 * Sw[k-1, i, j] + Sw[k-1, i-1, j]) / dx**2 +
                     (Sw[k-1, i, j+1] - 2 * Sw[k-1, i, j] + Sw[k-1, i, j-1]) / dy**2
                 )
-                Sw[k, i, j] = Sw[k-1, i, j] - dt*(  D+ np.abs(v)*Fy + np.abs(w)*Fx)
-                if Sw[k, i, j] > 1:
+                #print(Fy,Fx)
+                Sw[k, i, j] = Sw[k-1, i, j] + dt*(  diffusion_term+ v*Fy + w*Fx)
+                if Sw[k, i, j] > 10:
                     return Sw_list
 
-        Sw[k, nl-2:nl, 0:2] = Sw0
+        Sw[k,   nl-3:nl,0:3] = Sw0
 
     return Sw_list
 
