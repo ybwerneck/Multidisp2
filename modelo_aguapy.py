@@ -1,15 +1,9 @@
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import numpy as np
-from sys import argv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
-import imageio
-import cv2
 import Poisson
 
 
@@ -18,29 +12,33 @@ import Poisson
 #Variaveis fixas glabais 
 vw = 0.024 #velocidade de Darcy para injeção em meio poroso
 phi = 0.32142857142 #porosidade
-mi_w = 1 #viscosidade da água 20 graus 
-mi_g = 0.018 #viscosidade do ar 20 graus (ar)
-MRF = 1.0
+mi_w = 0.001 #viscosidade da água 20 graus 
+mi_g = 0.00018 #viscosidade do ar 20 graus (ar)
+Swc = 0.99 #Saturação da água* (rever)
+Sgr = 0.01 #Gás residual dominio
+q = 0.2998155 #velocidade de Darcy (calculada)
+
 
 def PermEff(S,P):
         lamb = P[0] #mobilidade total*
         krg = P[1] #permeabilidade efetiva (gás)
         krw = P[2] #permeabilidade efetiva (água)
-        Swc = P[3]#Saturação da água*
-        Sgr = P[4] #Saturação do gás*
 
         Swe = (S-Swc)/(1-S-Sgr)  #equação 7
         k_w = krw*Swe**lamb #equação 8
         k_g = krg*(1-Swe)**(3+(2/lamb)) #equação 9
         #if(S!=0):
             #print(S,k_w,k_g)
+        k_w = k_w
+        k_g = k_g
         return k_w,k_g
 
 
 def f(Sw,P):
    krw1,krg1=PermEff(Sw, P)
-   lw=  (krw1 * 0.2 / mi_w)
-   lg=((krg1 * 0.00114667) / (mi_g * MRF))
+   MRF = P[3]
+   lw = krw1/mi_w
+   lg = krg1/ (mi_g * MRF)
    lt=lw+lg
    #print(lw)
    #return Sw
@@ -53,17 +51,17 @@ def init(L,dl):
 
 def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P: list,Fw:float) -> list:
     nt, nl = int(t/dt), int(L/dl)
-    PRE=1
     rw = (vw*dt)/(dl*phi)
-    W, U = Poisson.poisson(dl, L,    1)  
+    krw = P[2]
+    W, U = Poisson.poisson(0.1, 10, q, mi_w, krw)  
 
 
     Sw = np.zeros((nt+1, nl, nl))
     Sw[0] = init(L, dl)
-    D=0.01
+    D=0.1
     Sw_list = []
     dx=dy=dl
-    Sw[0, nl-2:nl, 0] = 0.99
+    Sw[0, nl-2:nl, 0:2] = Sw0
     for k in range(1, nt+1):
         print("done ",round(k/nt * 100, 1))
 
@@ -72,7 +70,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
 
         for i in range(1, nl-1):
             for j in range(1, nl-1):
-                C = 15*1/(dl)#VAZAO/AREA * Q
+                C = 1#VAZAO/AREA * Q
                 v = C*U[i, j]
                 w = C*W[i, j]
 
@@ -93,7 +91,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
                 if Sw[k, i, j] > 1:
                     return Sw_list
 
-        Sw[k, nl-2:nl, 0] = 0.99
+        Sw[k, nl-2:nl, 0:2] = Sw0
 
     return Sw_list
 
@@ -104,17 +102,17 @@ L = 1
 dl = 0.05 
 t = 7
 dt = 0.01
-Sw0 = 0
+Sw0 = 0.99
 times_of_interest = [1,3,5,7]  # 
 
 #parametros a serem ajustados
 lamb = 3 #mobilidade total*
-krg = 0.8 #permeabilidade efetiva (gás)
-krw = 0.8#permeabilidade efetiva (água)
-Swc = 0.99 #Saturação da água*
-Sgr = 0.000 #Saturação do gás*
+krg = 10**(-8) #permeabilidade efetiva (gás)
+krw = 10**(-9)#permeabilidade efetiva (água)
+MRF = 1.5
+
 #-------------------------------
-P = [lamb, krg, krw, Swc, Sgr]
+P = [lamb, krg, krw, MRF]
 solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=1)
 
 directory = 'agua'  # Replace with your subfolder path
