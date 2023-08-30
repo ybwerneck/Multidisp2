@@ -16,7 +16,7 @@ vw = 0.024 #velocidade de Darcy para injeção em meio poroso
 phi = 0.32142857142 #porosidade
 mi_w = 1 #viscosidade da água 20 graus 
 mi_g = 0.018 #viscosidade do ar 20 graus (ar)
-MRF = 6
+MRF = 2.1
 def PermEff(S,P):
         lamb = P[0] #mobilidade total*
         krg = P[1] #permeabilidade efetiva (gás)
@@ -68,7 +68,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
 
         for i in range(1, nl-1):
             for j in range(1, nl-1):
-                C = 10*50/(dl)#VAZAO/AREA * Q
+                C =  15*50/(dl)#VAZAO/AREA * Q
                 v = C*U[i, j]
                 w = C*W[i, j]
 
@@ -98,14 +98,14 @@ Area=0.1
 
 L = 1
 dl = 0.01
-t = 10
+t = 10.1
 dt = 0.01
 Sw0 = 0
-times_of_interest = [1,2,3,4,5,6,7,8,9]
+times_of_interest = [1,2,3,4,5,6,7,8,9,10]
 
 #parametros a serem ajustados
 lamb = 3 #mobilidade total*
-krg = (10**(-11)) #permeabilidade efetiva (gás)
+krg = 0.9*(10**(-11)) #permeabilidade efetiva (gás)
 krw = 2*(10**(-8)) #permeabilidade efetiva (água)
 Swc = 0.99 #Saturação da água*
 Sgr = 0.000 #Saturação do gás*
@@ -124,14 +124,14 @@ for idx, time in enumerate(times_of_interest):
     plt.figure(figsize=(10, 4))
 
     plt.subplot(1, 2, 1)
-    plt.imshow((0.33-calculated_matrix[1:-1,1:-1])/0.33, cmap='viridis', origin='lower',vmin=1,vmax=0)
+    plt.imshow((0.33-calculated_matrix[1:-1,1:-1])/0.33, cmap='viridis', origin='lower',vmin=1,vmax=0.9)
     plt.colorbar(label='Sw')
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('Calculated Sw at time ' + str(time))
 
     plt.subplot(1, 2, 2)
-    plt.imshow(np.rot90(ref_matrix), cmap='viridis', origin='lower')
+    plt.imshow(1-np.rot90(ref_matrix), cmap='viridis', origin='lower')
     plt.colorbar(label='Sw')
     plt.xlabel('X')
     plt.ylabel('Y')
