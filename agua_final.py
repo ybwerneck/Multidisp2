@@ -1,5 +1,4 @@
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
@@ -7,9 +6,6 @@ from sys import argv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
-import imageio
-import cv2
 import Poisson
 
 
@@ -18,10 +14,9 @@ import Poisson
 #Variaveis fixas glabais 
 vw = 0.024 #velocidade de Darcy para injeção em meio poroso
 phi = 0.32142857142 #porosidade
-mi_w = 1e-3 #viscosidade da água 20 graus 
-mi_g = 0.018e-3 #viscosidade do ar 20 graus (ar)
-MRF = 1.0
-
+mi_w = 1 #viscosidade da água 20 graus 
+mi_g = 0.018 #viscosidade do ar 20 graus (ar)
+MRF = 2.1
 
 def PermEff(S,P):
         lamb = P[0] #mobilidade total*
@@ -39,9 +34,10 @@ def PermEff(S,P):
 
 
 def f(Sw,P):
+   return Sw
    krw1,krg1=PermEff(Sw, P)
-   lw=  (krw1 * 0.2 / mi_w)
-   lg=((krg1 * 0.00114667) / (mi_g * MRF))
+   lw=  (krw1/ mi_w)
+   lg=((krg1) / (mi_g * MRF))
    lt=lw+lg
    #print(lw)
    #return Sw
@@ -56,15 +52,15 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
     nt, nl = int(t/dt), int(L/dl)
     PRE=1
     rw = (vw*dt)/(dl*phi)
-    W, U = Poisson.poisson(dl, L, q=1.1994  ,K=krw/mi_w)  
+    W, U = Poisson.poisson(dl, L)  
 
-    print(np.max(np.abs(U)))
+
     Sw = np.zeros((nt+1, nl, nl))
     Sw[0] = init(L, dl)
-    D=0.09
+    D=0.01
     Sw_list = []
     dx=dy=dl
-    Sw[0, nl-2:nl, 0] = Fw
+    Sw[0, nl-2:nl, 0] = 0.333333333333
     for k in range(1, nt+1):
         print("done ",round(k/nt * 100, 1))
 
@@ -73,7 +69,7 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
 
         for i in range(1, nl-1):
             for j in range(1, nl-1):
-                C =(1/dl)
+                C = 2/(dl)#VAZAO/AREA * Q
                 v = C*U[i, j]
                 w = C*W[i, j]
 
@@ -90,53 +86,53 @@ def Solve2d(L: float, dl: float, t: float, dt: float, Sw0: float, times: list, P
                     (Sw[k-1, i+1, j] - 2 * Sw[k-1, i, j] + Sw[k-1, i-1, j]) / dx**2 +
                     (Sw[k-1, i, j+1] - 2 * Sw[k-1, i, j] + Sw[k-1, i, j-1]) / dy**2
                 )
-                Sw[k, i, j] = Sw[k-1, i, j] - dt*(  D+ np.abs(v)*Fy + np.abs(w)*Fx)
+                Sw[k, i, j] = Sw[k-1, i, j] - dt*(D+ np.abs(v)*Fy + np.abs(w)*Fx)
                 if Sw[k, i, j] > 1:
                     return Sw_list
 
-        Sw[k, nl-2:nl, 0] = Fw
+        Sw[k, nl-2:nl, 0] = 1
 
     return Sw_list
 
 
-Area=0.
+Area=0.1
 
 L = 1
-dl = 0.05 
-t = 7
+dl = 0.01
+t = 10
 dt = 0.01
 Sw0 = 0
-times_of_interest = [1,3,5,7]  #  
+times_of_interest = [1,2,3,4,5,6,7,8,9]
 
 #parametros a serem ajustados
-lamb = 3 #mobilidade total*
-krg = 0.9 #permeabilidade efetiva (gás)
-krw = 0.74#permeabilidade efetiva (água) ##suspeito
+lamb = 5 #mobilidade total*
+krg = 10**(-11) #permeabilidade efetiva (gás)
+krw = 2*10**(-8) #permeabilidade efetiva (água)
 Swc = 0.99 #Saturação da água*
 Sgr = 0.000 #Saturação do gás*
 #-------------------------------
 P = [lamb, krg, krw, Swc, Sgr]
-solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=(1/3)*1)
+solutions = Solve2d(L, dl, t, dt, Sw0, times_of_interest, P,Fw=1)
 
-directory = 'espuma'  # Replace with your subfolder path
+directory = 'agua'  # Replace with your subfolder path
 for idx, time in enumerate(times_of_interest):
     ref_csv_filename = f'concentration_{idx+2}.csv'
     ref_csv_path = os.path.join(directory, ref_csv_filename)
     ref_matrix = np.loadtxt(ref_csv_path, delimiter=',')
 
-    calculated_matrix = solutions[idx]/np.max(solutions[idx])
+    calculated_matrix = solutions[idx]
 
     plt.figure(figsize=(10, 4))
 
     plt.subplot(1, 2, 1)
-    plt.imshow(calculated_matrix, cmap='viridis', origin='lower', vmin=0, vmax=1)
+    plt.imshow((calculated_matrix[1:-1,1:-1])/1, cmap='viridis', origin='lower',vmin=1,vmax=0)
     plt.colorbar(label='Sw')
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('Calculated Sw at time ' + str(time))
 
     plt.subplot(1, 2, 2)
-    plt.imshow(np.rot90(ref_matrix), cmap='viridis', origin='lower', vmin=0, vmax=1)
+    plt.imshow(np.rot90(ref_matrix), cmap='viridis', origin='lower')
     plt.colorbar(label='Sw')
     plt.xlabel('X')
     plt.ylabel('Y')

@@ -117,12 +117,12 @@ def solve_poisson(dl, L, q, mi_w, K):
     ub2 =-a/2    
     ub3= -ub2        # boundary value
      
-    xb2 = [(0.01*L),(0.05*L)]        # lower and upper limits of x defining the inner boundary region
-    yb2 = [(0.95*L),(0.99*L)]        # lower and upper limits of y defining the inner boundary region
+    xb2 = [0.0,0.02]        # lower and upper limits of x defining the inner boundary region
+    yb2 = [L-0.02,L]        # lower and upper limits of y defining the inner boundary region
     
     print( xb2,yb2)
-    xb3 = yb2       # lower and upper limits of x defining the inner boundary region
-    yb3 = xb2    
+    xb3 = [L-0.02,L]        # lower and upper limits of x defining the inner boundary region
+    yb3 = [0.0,0.02]    
     #==============================================================================
     
     
@@ -173,19 +173,22 @@ def solve_poisson(dl, L, q, mi_w, K):
     # Boundary indices
     start_time = time.time()
     ind_unravel_L = np.squeeze(np.where(Xu==x[0]))          # Left boundary
-    ind_unravel_R = np.squeeze(np.where(Xu==x[Nx-1]))       # Right boundary
+    ind_unravel_R = np.squeeze(np.where(Xu==x[Nx-1]))     # Right boundary
     ind_unravel_B = np.squeeze(np.where(Yu==y[0]))          # Bottom boundary
     ind_unravel_T = np.squeeze(np.where(Yu==y[Ny-1]))       # Top boundary
-    
-    ind_boundary_unravel = np.squeeze(np.where((Xu==x[0]) | (Xu==x[Nx-1]) | (Yu==y[0]) | (Yu==y[Ny-1])))  # outer boundaries 1D unravel indices
-    ind_boundary = np.where((X==x[0]) | (X==x[Nx-1]) | (Y==y[0]) | (Y==y[Ny-1]))    # outer boundary
-    
+
     
     ind_boundary2_unravel = np.squeeze(np.where((Xu>xb2[0]) & (Xu<xb2[1]) & (Yu>yb2[0]) & (Yu<yb2[1])))  # inner boundaries defined by xb2 and yb2
-    ind_boundary2 = np.where((X>xb2[0]) & (X<xb2[1]) & (Y>yb2[0]) & (Y<yb2[1]))    #  inner boundaries
+    ind_boundary2 = np.where((X>=xb2[0]) & (X<=xb2[1]) & (Y>=yb2[0]) & (Y<=yb2[1]))    #  inner boundaries
     
     ind_boundary3_unravel = np.squeeze(np.where((Xu>xb3[0]) & (Xu<xb3[1]) & (Yu>yb3[0]) & (Yu<yb3[1])))  # inner boundaries defined by xb2 and yb2
-    ind_boundary3 = np.where((X>xb3[0]) & (X<xb3[1]) & (Y>yb3[0]) & (Y<yb3[1]))    #  inner boundaries
+    ind_boundary3 = np.where((X>=xb3[0]) & (X<=xb3[1]) & (Y>=yb3[0]) & (Y<=yb3[1]))    #  inner boundaries
+    isin = lambda b,c:np.array([(b!=a) for a in c]).all()
+        
+    ind_boundary_unravel = np.squeeze(np.where((Xu==x[0]) | (Xu==x[Nx-1]) | (Yu==y[0]) | (Yu==y[Ny-1])))  # outer boundaries 1D unravel indices
+    ind_boundary = np.where( ((X == x[0]) | (X == x[Nx-1]) | (Y == y[0]) | (Y == y[Ny-1])) )
+   # outer boundary
+    
     print("Boundary search time = %1.6s" % (time.time()-start_time))
     
     # Plot solution domain (with boundary)
@@ -210,8 +213,8 @@ def solve_poisson(dl, L, q, mi_w, K):
     
     # Boundary operators
     BD = I_sp       # Dirichlet boundary operator
-    BNx = I_sp     # Neumann boundary operator for x component
-    BNy = I_sp      # Neumann boundary operator for y component
+    BNx = Dx_2d     # Neumann boundary operator for x component
+    BNy = Dy_2d     # Neumann boundary operator for y component    # Neumann boundary operator for y component
     
     # Selectively replace the rows of the system matrix that correspond to boundary value points. We replace these rows with 
     # those of the boundary operator

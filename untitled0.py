@@ -113,7 +113,7 @@ def poisson(dl, L, q, mi_w, K):
     
     #==============================================================================
     # Dirichlet boundary conditions at an inner rectangular region
-    ub2 = 1.5     
+    ub2 = 1000
     ub3= -ub2        # boundary value
      
     xb2 = [0.0,0.4]        # lower and upper limits of x defining the inner boundary region
